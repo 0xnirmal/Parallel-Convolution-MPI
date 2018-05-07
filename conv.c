@@ -20,50 +20,25 @@ void update_global(int * main_grid, int nrows, int num_procs, int DIM) {
   }
 }
 
-int get_nbs(int *, int, int, int, int *);
-int get_nbs(int * sub_grid, int i, int nrows, int DIM, int * kernel) {
+int conv(int *, int, int, int, int *);
+int conv(int * sub_grid, int i, int nrows, int DIM, int * kernel) {
   int counter = 0;
+
+  if (i % DIM != 0) {
+    counter = counter + sub_grid[i - DIM - 1] * kernel[0];
+    counter = counter + sub_grid[i - 1] * kernel[3];
+    counter = counter + sub_grid[i + DIM - 1] * kernel[6];
+  }
+
+  if ((i + 1) % DIM != 0) {
+    counter = counter + sub_grid[i - DIM + 1] * kernel[2];
+    counter = counter + sub_grid[i + 1] * kernel[5];
+    counter = counter + sub_grid[i + DIM + 1] * kernel[8];
+  }
   
   counter = counter + sub_grid[i + DIM] * kernel[7];
-  
-  if(sub_grid[i + DIM - 1] == 1) {
-      counter++;
-  }
-  if(sub_grid[i - 1] == 1) {
-      counter++;
-  }
-  if(sub_grid[i - DIM] == 1) {
-      counter++;
-  }
-  if(sub_grid[i - DIM + 1] == 1) {
-      counter++;
-  } 
-  if(sub_grid[i + 1] == 1) {
-      counter++;
-  } 
- 
-  if(i % DIM == 0) {
-    if(sub_grid[i + DIM + 1] == 1){
-      counter++;
-    }
-    if(sub_grid[i - 1 + (2 * DIM)] == 1) {
-      counter++;
-    }
-  } else if((i + 1) % DIM == 0) {
-    if(sub_grid[i + 1 - (2 * DIM)] == 1) {
-      counter++;
-    }
-    if(sub_grid[i - DIM - 1] == 1) {
-      counter++;
-    }
-  } else {
-    if(sub_grid[i + DIM + 1] == 1) {
-      counter++;
-    }
-    if(sub_grid[i - DIM - 1] == 1) {
-      counter++;
-    }
-  }
+  counter = counter + sub_grid[i - DIM] * kernel[1];
+  counter = counter + sub_grid[i] * kernel[4];
   
   return counter;
 }
@@ -71,19 +46,11 @@ int get_nbs(int * sub_grid, int i, int nrows, int DIM, int * kernel) {
 
 int * check(int *, int, int, int *);
 int * check(int * sub_grid, int nrows, int DIM, int * kernel) {
-  int nbs;
+  int val;
   int * new_grid = calloc(DIM * nrows, sizeof(int));
   for(int i = DIM; i < (DIM * (1 + nrows)); i++) {
-    nbs = get_nbs(sub_grid, i, nrows, DIM, kernel);
-    if(sub_grid[i] == 1) {
-      if(nbs == 3 || nbs == 2) {
-        new_grid[i - DIM] = 1;
-      }
-    } else {
-      if(nbs == 3) {
-        new_grid[i - DIM] = 1;
-      }
-    }
+    val = conv(sub_grid, i, nrows, DIM, kernel);
+    new_grid[i - DIM] = val;
   }
   return new_grid;
 }
@@ -169,6 +136,12 @@ int main ( int argc, char** argv ) {
       pad_row_upper = lower;
     }
     int sub_grid[(2 * DIM) + (nrows * DIM)];
+    if (ID == 0) {
+      memset(pad_row_upper, 0, DIM*sizeof(int));
+    }
+    if (ID == (num_procs - 1)) {
+      memset(pad_row_lower, 0, DIM*sizeof(int));
+    }
     memcpy(sub_grid, pad_row_upper, sizeof(int) * DIM); 
     memcpy(&sub_grid[DIM], &main_grid[DIM * start], sizeof(int) * DIM * nrows);    
     memcpy(&sub_grid[DIM + (DIM * nrows)], pad_row_lower, sizeof(int) * DIM);
