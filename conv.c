@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include "mpi.h"
 
-#define DEFAULT_ITERATIONS 1
+#define DEFAULT_ITERATIONS 50
 #define KERNEL_SIZE 9 
 
 // documentation: http://mpitutorial.com/tutorials/mpi-send-and-receive/
@@ -80,7 +80,7 @@ int main ( int argc, char** argv ) {
   int kernel[KERNEL_SIZE];
   memset(kernel, 0, KERNEL_SIZE*sizeof(int));
   for(int i = 0; i < KERNEL_SIZE; i++) {
-    kernel[i] = 5;
+    kernel[i] = 1;
   }
   // Messaging variables
   MPI_Status stat;
