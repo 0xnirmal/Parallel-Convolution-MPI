@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <sys/time.h>
 #include "mpi.h"
 
 #define DEFAULT_ITERATIONS 1
@@ -57,7 +58,6 @@ int * check(int * sub_grid, int nrows, int DIM, int * kernel) {
 }
 
 int main ( int argc, char** argv ) {
-
   // MPI Standard variable
   int num_procs;
   int ID, j;
