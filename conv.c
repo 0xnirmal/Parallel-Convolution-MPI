@@ -9,6 +9,7 @@
 #include "mpi.h"
 
 #define DEFAULT_ITERATIONS 1
+#define KERNEL_SIZE 9 
 
 // documentation: http://mpitutorial.com/tutorials/mpi-send-and-receive/
 // http://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/
@@ -39,7 +40,7 @@ int conv(int * sub_grid, int i, int nrows, int DIM, int * kernel) {
   counter = counter + sub_grid[i + DIM] * kernel[7];
   counter = counter + sub_grid[i - DIM] * kernel[1];
   counter = counter + sub_grid[i] * kernel[4];
-  
+
   return counter;
 }
 
@@ -71,11 +72,18 @@ int main ( int argc, char** argv ) {
     GRID_WIDTH = DIM * DIM;
   }
   int main_grid[GRID_WIDTH];
-  memset(main_grid, 1, GRID_WIDTH*sizeof(int));
+  memset(main_grid, 0, GRID_WIDTH*sizeof(int));
+  for(int i = 0; i < GRID_WIDTH; i++) {
+    main_grid[i] = 1;
+    printf("%d\n", main_grid[i]);
+  }
 
-  int kernel[9];
-  memset(kernel, 5, 9*sizeof(int));
-  
+  int kernel[KERNEL_SIZE];
+  memset(kernel, 0, KERNEL_SIZE*sizeof(int));
+  for(int i = 0; i < KERNEL_SIZE; i++) {
+    kernel[i] = 5;
+    printf("%d\n", kernel[i]);
+  }
   // Messaging variables
   MPI_Status stat;
   // TODO add other variables as necessary
