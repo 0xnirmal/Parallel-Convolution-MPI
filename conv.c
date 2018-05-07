@@ -158,19 +158,25 @@ int main ( int argc, char** argv ) {
 
     printf("Going into aggregation block\n");
     if(ID != 0) {
+      printf("Sending to 0\n");
       MPI_Send(changed_subgrid, nrows * DIM, MPI_INT, 0, 11, MPI_COMM_WORLD);
+      printf("Finishing 0 send\n");
     } else {
+      printf("0 process aggregation\n");
       for(int i = 0; i < nrows * DIM; i++) {
         main_grid[i] = changed_subgrid[i];
       }
+      printf("0 process agg finished\n");
       for(int k = 1; k < num_procs; k++) {
         MPI_Status status;
         MPI_Recv(&main_grid[DIM * (DIM / num_procs) * k], nrows * DIM, MPI_INT, k, 11, MPI_COMM_WORLD, &status);
       }
+      printf("Receiving finished\n");
 
       update_global(main_grid, nrows, num_procs, DIM);
+      printf("Update global finished\n");
     }
-    printf("Cleaning\n")
+    printf("Cleaning\n");
 
     // Output the updated grid state
     // if ( ID == 0 ) {
