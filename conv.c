@@ -58,7 +58,7 @@ int * check(int * sub_grid, int nrows, int DIM, int * kernel) {
 }
 
 int main ( int argc, char** argv ) {
-  printf("Enters main")
+  printf("Enters main");
   // MPI Standard variable
   int num_procs;
   int ID, j;
@@ -111,7 +111,7 @@ int main ( int argc, char** argv ) {
   int next = (ID + 1) % num_procs;
   int prev = ID != 0 ? ID - 1 : num_procs - 1;
   
-  printf("Entering for loop")
+  printf("Entering for loop");
   for ( iters = 0; iters < num_iterations; iters++ ) {
     // TODO: Add Code here or a function call to you MPI code
     if(ID != 0 && iters > 0) {
@@ -123,7 +123,7 @@ int main ( int argc, char** argv ) {
     
     memcpy(upper, &main_grid[DIM * start], sizeof(int) * DIM);
     pad_row_upper = malloc(sizeof(int) * DIM);
-    printf("Entering send/receive..")
+    printf("Entering send/receive..");
     if(num_procs > 1) {
       if(ID % 2 == 1) {
         MPI_Recv(pad_row_lower, DIM, MPI_INT, next, 1, MPI_COMM_WORLD, &stat);
@@ -143,7 +143,7 @@ int main ( int argc, char** argv ) {
       pad_row_lower = upper;
       pad_row_upper = lower;
     }
-    printf("Exiting send/receive.")
+    printf("Exiting send/receive.");
     int sub_grid[(2 * DIM) + (nrows * DIM)];
     if (ID == 0) {
       memset(pad_row_upper, 0, DIM*sizeof(int));
