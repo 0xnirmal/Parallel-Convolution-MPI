@@ -75,14 +75,12 @@ int main ( int argc, char** argv ) {
   memset(main_grid, 0, GRID_WIDTH*sizeof(int));
   for(int i = 0; i < GRID_WIDTH; i++) {
     main_grid[i] = 1;
-    printf("%d\n", main_grid[i]);
   }
 
   int kernel[KERNEL_SIZE];
   memset(kernel, 0, KERNEL_SIZE*sizeof(int));
   for(int i = 0; i < KERNEL_SIZE; i++) {
     kernel[i] = 5;
-    printf("%d\n", kernel[i]);
   }
   // Messaging variables
   MPI_Status stat;
@@ -171,7 +169,7 @@ int main ( int argc, char** argv ) {
     
     // Output the updated grid state
     if ( ID == 0 ) {
-      printf ( "\nIteration %d: final grid:\n", iters );
+      printf ( "\nConvolution Output: \n");
       for ( j = 0; j < GRID_WIDTH; j++ ) {
         if ( j % DIM == 0 ) {
           printf( "\n" );
