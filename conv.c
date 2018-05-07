@@ -168,16 +168,16 @@ int main ( int argc, char** argv ) {
     }
     
     // Output the updated grid state
-    if ( ID == 0 ) {
-      printf ( "\nConvolution Output: \n");
-      for ( j = 0; j < GRID_WIDTH; j++ ) {
-        if ( j % DIM == 0 ) {
-          printf( "\n" );
-        }
-        printf ( "%d  ", main_grid[j] );
-      }
-      printf( "\n" );
-    }
+    // if ( ID == 0 ) {
+    //   printf ( "\nConvolution Output: \n");
+    //   for ( j = 0; j < GRID_WIDTH; j++ ) {
+    //     if ( j % DIM == 0 ) {
+    //       printf( "\n" );
+    //     }
+    //     printf ( "%d  ", main_grid[j] );
+    //   }
+    //   printf( "\n" );
+    // }
   }
 
   // TODO: Clean up memory
