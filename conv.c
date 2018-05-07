@@ -156,6 +156,7 @@ int main ( int argc, char** argv ) {
     memcpy(&sub_grid[DIM + (DIM * nrows)], pad_row_lower, sizeof(int) * DIM);
     int * changed_subgrid = check(sub_grid, nrows, DIM, kernel);
 
+    printf("Going into aggregation block\n");
     if(ID != 0) {
       MPI_Send(changed_subgrid, nrows * DIM, MPI_INT, 0, 11, MPI_COMM_WORLD);
     } else {
@@ -169,7 +170,8 @@ int main ( int argc, char** argv ) {
 
       update_global(main_grid, nrows, num_procs, DIM);
     }
-    
+    printf("Cleaning\n")
+
     // Output the updated grid state
     // if ( ID == 0 ) {
     //   printf ( "\nConvolution Output: \n");
