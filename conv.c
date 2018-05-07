@@ -191,11 +191,14 @@ int main ( int argc, char** argv ) {
     // }
   }
 
+  printf("Freeing\n");
   // TODO: Clean up memory
   if(num_procs >= 2) {
     free(pad_row_upper);
     free(pad_row_lower);
   }
+  printf("Finalizing\n");
   MPI_Finalize(); // finalize so I can exit
+  printf("MPI Finalize done\n");
 }
 
