@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include "mpi.h"
 
-#define DEFAULT_ITERATIONS 100000
+#define DEFAULT_ITERATIONS 1
 
 // documentation: http://mpitutorial.com/tutorials/mpi-send-and-receive/
 // http://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/
@@ -77,11 +77,18 @@ int main ( int argc, char** argv ) {
   int KERNEL_SIZE;
 
   num_iterations = DEFAULT_ITERATIONS;
-  if (argc == 3) {
+  if (argc >= 3) {
     DIM = atoi(argv[1]);
     GRID_WIDTH = DIM * DIM;
     KERNEL_DIM = atoi(argv[2]);
     KERNEL_SIZE = KERNEL_DIM * KERNEL_DIM;
+    if (argc == 4) {
+      num_iterations = atoi(argv[3]);
+    }
+  } else {
+    printf("Invalid command line arguments");
+    MPI_Finalize();
+    exit(-1);
   }
   int main_grid[GRID_WIDTH];
   memset(main_grid, 0, GRID_WIDTH*sizeof(int));
