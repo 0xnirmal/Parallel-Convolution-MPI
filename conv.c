@@ -9,21 +9,15 @@
 #include <sys/time.h>
 #include "mpi.h"
 
-#define DEFAULT_ITERATIONS 1
+#define DEFAULT_ITERATIONS 100000
 
 // documentation: http://mpitutorial.com/tutorials/mpi-send-and-receive/
 // http://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/
 
-void update_global(int *, int, int, int);
-void update_global(int * main_grid, int nrows, int num_procs, int DIM) {
-  //printf("Update global\n");
-  for(int i = 1; i < num_procs; i++) {
-    //printf("Sending %d\n", i);
-    MPI_Ssend(main_grid, DIM * DIM, MPI_INT, i, 10, MPI_COMM_WORLD);
-  }
-}
-
 int conv_column(int *, int, int, int, int *, int);
+int conv(int *, int, int, int, int *, int);
+int * check(int *, int, int, int *, int);
+
 int conv_column(int * sub_grid, int i, int nrows, int DIM, int * kernel, int kernel_dim) {
   int counter = 0;
   int num_pads = (kernel_dim - 1) / 2;
@@ -37,7 +31,6 @@ int conv_column(int * sub_grid, int i, int nrows, int DIM, int * kernel, int ker
   return counter;
 }
 
-int conv(int *, int, int, int, int *, int);
 int conv(int * sub_grid, int i, int nrows, int DIM, int * kernel, int kernel_dim) {
   int counter = 0;
   int num_pads = (kernel_dim - 1) / 2;
@@ -61,7 +54,6 @@ int conv(int * sub_grid, int i, int nrows, int DIM, int * kernel, int kernel_dim
   return counter;
 }
 
-int * check(int *, int, int, int *, int);
 int * check(int * sub_grid, int nrows, int DIM, int * kernel, int kernel_dim) {
   int val;
   int num_pads = (kernel_dim - 1) / 2;
@@ -74,7 +66,6 @@ int * check(int * sub_grid, int nrows, int DIM, int * kernel, int kernel_dim) {
 }
 
 int main ( int argc, char** argv ) {
-  //printf("Enters main\n");
   // MPI Standard variable
   int num_procs;
   int ID, j;
@@ -107,12 +98,11 @@ int main ( int argc, char** argv ) {
   }
   // Messaging variables
   MPI_Status status;
-  // TODO add other variables as necessary
 
   // MPI Setup
   if ( MPI_Init( &argc, &argv ) != MPI_SUCCESS )
   {
-    //printf ( "MPI_Init error\n" );
+    printf ( "MPI_Init error\n" );
   }
 
   MPI_Comm_size ( MPI_COMM_WORLD, &num_procs ); // Set the num_procs
@@ -120,7 +110,6 @@ int main ( int argc, char** argv ) {
 
   assert ( DIM % num_procs == 0 );
 
-  // TODO Setup your environment as necessary
   int upper[DIM * num_pads];
   int lower[DIM * num_pads];
   
@@ -133,18 +122,14 @@ int main ( int argc, char** argv ) {
   int next = (ID + 1) % num_procs;
   int prev = ID != 0 ? ID - 1 : num_procs - 1;
   
-  //printf("Entering for loop\n");
   for ( iters = 0; iters < num_iterations; iters++ ) {
-    // TODO: Add Code here or a function call to you MPI code
-    if(ID != 0 && iters > 0) {
-      // MPI_Recv(&main_grid[0], DIM * DIM, MPI_INT, 0, 10, MPI_COMM_WORLD, &status);
-    }
+
     memcpy(lower, &main_grid[DIM * (end - num_pads + 1)], sizeof(int) * DIM * num_pads);
     pad_row_lower = malloc(sizeof(int) * DIM * num_pads);
     
     memcpy(upper, &main_grid[DIM * start], sizeof(int) * DIM * num_pads);
     pad_row_upper = malloc(sizeof(int) * DIM * num_pads);
-    //printf("Entering send/receive..\n");
+
     if(num_procs > 1) {
       if(ID % 2 == 1) {
         MPI_Recv(pad_row_lower, DIM * num_pads, MPI_INT, next, 1, MPI_COMM_WORLD, &status);
@@ -164,7 +149,7 @@ int main ( int argc, char** argv ) {
       pad_row_lower = upper;
       pad_row_upper = lower;
     }
-    //printf("Exiting send/receive.\n");
+
     int sub_grid[DIM * (nrows + (2 * num_pads))];
     if (ID == 0) {
       memset(pad_row_upper, 0, DIM*sizeof(int)*num_pads);
@@ -177,48 +162,42 @@ int main ( int argc, char** argv ) {
     memcpy(&sub_grid[DIM * (nrows + num_pads)], pad_row_lower, sizeof(int) * DIM * num_pads);
     int * changed_subgrid = check(sub_grid, nrows, DIM, kernel, KERNEL_DIM);
 
-    //printf("Going into aggregation block\n");
     if(ID != 0) {
-      //printf("Sending to 0\n");
       MPI_Send(changed_subgrid, nrows * DIM, MPI_INT, 0, 11, MPI_COMM_WORLD);
-      //printf("Finishing 0 send\n");
+      MPI_Recv(&main_grid[0], DIM * DIM, MPI_INT, 0, 10, MPI_COMM_WORLD, &status);
     } else {
-      //printf("0 process aggregation\n");
       for(int i = 0; i < nrows * DIM; i++) {
         main_grid[i] = changed_subgrid[i];
       }
-      //printf("0 process agg finished\n");
+
       for(int k = 1; k < num_procs; k++) {
         MPI_Recv(&main_grid[DIM * (DIM / num_procs) * k], nrows * DIM, MPI_INT, k, 11, MPI_COMM_WORLD, &status);
       }
-      //printf("Receiving finished\n");
 
-      // update_global(main_grid, nrows, num_procs, DIM);
-      //printf("Update global finished\n");
+      for(int i = 1; i < num_procs; i++) {
+        MPI_Send(main_grid, DIM * DIM, MPI_INT, i, 10, MPI_COMM_WORLD);
+      }
+      
     }
-    //printf("Cleaning\n");
 
     // Output the updated grid state
-     /* if ( ID == 0 ) { */
-     /*   printf ( "\nConvolution Output: \n"); */
-     /*   for ( j = 0; j < GRID_WIDTH; j++ ) { */
-     /*     if ( j % DIM == 0 ) { */
-     /*       printf( "\n" ); */
-     /*     } */
-     /*     printf ( "%d  ", main_grid[j] ); */
-     /*   } */
-     /*   printf( "\n" ); */
-     /* } */
+     // if ( ID == 0 ) { 
+     //    printf ( "\nConvolution Output: \n"); 
+     //    for ( j = 0; j < GRID_WIDTH; j++ ) { 
+     //      if ( j % DIM == 0 ) { 
+     //        printf( "\n" ); 
+     //      } 
+     //      printf ( "%d  ", main_grid[j] ); 
+     //   } 
+     //    printf( "\n" ); 
+     // }
   }
 
-  //printf("Freeing\n");
-  // TODO: Clean up memory
   if(num_procs >= 2) {
     free(pad_row_upper);
     free(pad_row_lower);
   }
-  //printf("Finalizing\n");
+
   MPI_Finalize(); // finalize so I can exit
-  //printf("MPI Finalize done\n");
 }
 
