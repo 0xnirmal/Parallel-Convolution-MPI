@@ -10,7 +10,6 @@
 #include "mpi.h"
 
 #define DEFAULT_ITERATIONS 1
-#define KERNEL_SIZE 9 
 
 // documentation: http://mpitutorial.com/tutorials/mpi-send-and-receive/
 // http://mpitutorial.com/tutorials/dynamic-receiving-with-mpi-probe-and-mpi-status/
@@ -24,37 +23,52 @@ void update_global(int * main_grid, int nrows, int num_procs, int DIM) {
   }
 }
 
-int conv(int *, int, int, int, int *);
-int conv(int * sub_grid, int i, int nrows, int DIM, int * kernel) {
+int conv_column(int *, int, int, int, int *, int);
+int conv_column(int * sub_grid, int i, int nrows, int DIM, int * kernel, int kernel_dim) {
   int counter = 0;
-
-  if (i % DIM != 0) {
-    counter = counter + sub_grid[i - DIM - 1] * kernel[0];
-    counter = counter + sub_grid[i - 1] * kernel[3];
-    counter = counter + sub_grid[i + DIM - 1] * kernel[6];
-  }
-
-  if ((i + 1) % DIM != 0) {
-    counter = counter + sub_grid[i - DIM + 1] * kernel[2];
-    counter = counter + sub_grid[i + 1] * kernel[5];
-    counter = counter + sub_grid[i + DIM + 1] * kernel[8];
-  }
+  int num_pads = (kernel_dim - 1) / 2;
   
-  counter = counter + sub_grid[i + DIM] * kernel[7];
-  counter = counter + sub_grid[i - DIM] * kernel[1];
-  counter = counter + sub_grid[i] * kernel[4];
-
+  for (int j = 1; j < (num_pads + 1); j++) {
+    counter = counter + sub_grid[i + j*DIM] * kernel[(((kernel_dim - 1)*(kernel_dim + 1)) / 2) + j*kernel_dim];
+    counter = counter + sub_grid[i - j*DIM] * kernel[(((kernel_dim - 1)*(kernel_dim + 1)) / 2) - j*kernel_dim];
+  }
+  counter = counter + sub_grid[i] * kernel[(((kernel_dim - 1)*(kernel_dim + 1)) / 2)];
+  
   return counter;
 }
 
+int conv(int *, int, int, int, int *, int);
+int conv(int * sub_grid, int i, int nrows, int DIM, int * kernel, int kernel_dim) {
+  int counter = 0;
+  int num_pads = (kernel_dim - 1) / 2;
+  //convolve middle column
+  counter = counter + conv_column(sub_grid, i, nrows, DIM, kernel, kernel_dim);
 
-int * check(int *, int, int, int *);
-int * check(int * sub_grid, int nrows, int DIM, int * kernel) {
+  //convolve left and right columns
+  for (int j = 1; j < (num_pads + 1); j++) {
+    //get last element of current row
+    int end = (((i / DIM) + 1) * DIM) - 1;
+    if (i + j - end <= 0) { //if column is valid
+      counter = counter + conv_column(sub_grid, i + j, nrows, DIM, kernel, kernel_dim);
+    }
+    //get first element of current row
+    int first = (i / DIM) * DIM;
+    if (i - j - first >= 0) {
+      counter = counter + conv_column(sub_grid, i - j, nrows, DIM, kernel, kernel_dim);
+    }
+  }
+  
+  return counter;
+}
+
+int * check(int *, int, int, int *, int);
+int * check(int * sub_grid, int nrows, int DIM, int * kernel, int kernel_dim) {
   int val;
+  int num_pads = (kernel_dim - 1) / 2;
   int * new_grid = calloc(DIM * nrows, sizeof(int));
-  for(int i = DIM; i < (DIM * (1 + nrows)); i++) {
-    val = conv(sub_grid, i, nrows, DIM, kernel);
-    new_grid[i - DIM] = val;
+  for(int i = (num_pads * DIM); i < (DIM * (num_pads + nrows)); i++) {
+    val = conv(sub_grid, i, nrows, DIM, kernel, kernel_dim);
+    new_grid[i - (num_pads * DIM)] = val;
   }
   return new_grid;
 }
@@ -68,17 +82,23 @@ int main ( int argc, char** argv ) {
   int num_iterations;
   int DIM;
   int GRID_WIDTH;
+  int KERNEL_DIM;
+  int KERNEL_SIZE;
 
   num_iterations = DEFAULT_ITERATIONS;
-  if (argc == 2) {
+  if (argc == 3) {
     DIM = atoi(argv[1]);
     GRID_WIDTH = DIM * DIM;
+    KERNEL_DIM = atoi(argv[2]);
+    KERNEL_SIZE = KERNEL_DIM * KERNEL_DIM;
   }
   int main_grid[GRID_WIDTH];
   memset(main_grid, 0, GRID_WIDTH*sizeof(int));
   for(int i = 0; i < GRID_WIDTH; i++) {
     main_grid[i] = 1;
   }
+
+  int num_pads = (KERNEL_DIM - 1) / 2;
 
   int kernel[KERNEL_SIZE];
   memset(kernel, 0, KERNEL_SIZE*sizeof(int));
@@ -101,8 +121,8 @@ int main ( int argc, char** argv ) {
   assert ( DIM % num_procs == 0 );
 
   // TODO Setup your environment as necessary
-  int upper[DIM];
-  int lower[DIM];
+  int upper[DIM * num_pads];
+  int lower[DIM * num_pads];
   
   int * pad_row_upper;
   int * pad_row_lower;
@@ -119,43 +139,43 @@ int main ( int argc, char** argv ) {
     if(ID != 0 && iters > 0) {
       // MPI_Recv(&main_grid[0], DIM * DIM, MPI_INT, 0, 10, MPI_COMM_WORLD, &status);
     }
-    memcpy(lower, &main_grid[DIM * end], sizeof(int) * DIM);
-    pad_row_lower = malloc(sizeof(int) * DIM);
+    memcpy(lower, &main_grid[DIM * (end - num_pads + 1)], sizeof(int) * DIM * num_pads);
+    pad_row_lower = malloc(sizeof(int) * DIM * num_pads);
     
-    memcpy(upper, &main_grid[DIM * start], sizeof(int) * DIM);
-    pad_row_upper = malloc(sizeof(int) * DIM);
+    memcpy(upper, &main_grid[DIM * start], sizeof(int) * DIM * num_pads);
+    pad_row_upper = malloc(sizeof(int) * DIM * num_pads);
     //printf("Entering send/receive..\n");
     if(num_procs > 1) {
       if(ID % 2 == 1) {
-        MPI_Recv(pad_row_lower, DIM, MPI_INT, next, 1, MPI_COMM_WORLD, &status);
-        MPI_Recv(pad_row_upper, DIM, MPI_INT, prev, 1, MPI_COMM_WORLD, &status);
+        MPI_Recv(pad_row_lower, DIM * num_pads, MPI_INT, next, 1, MPI_COMM_WORLD, &status);
+        MPI_Recv(pad_row_upper, DIM * num_pads, MPI_INT, prev, 1, MPI_COMM_WORLD, &status);
       } else {
-        MPI_Send(upper, DIM, MPI_INT, prev, 1, MPI_COMM_WORLD);
-        MPI_Send(lower, DIM, MPI_INT, next, 1, MPI_COMM_WORLD);
+        MPI_Send(upper, DIM * num_pads, MPI_INT, prev, 1, MPI_COMM_WORLD);
+        MPI_Send(lower, DIM * num_pads, MPI_INT, next, 1, MPI_COMM_WORLD);
       }  
       if(ID % 2 == 1) {
-        MPI_Send(upper, DIM, MPI_INT, prev, 0, MPI_COMM_WORLD);
-        MPI_Send(lower, DIM, MPI_INT, next, 0, MPI_COMM_WORLD);
+        MPI_Send(upper, DIM * num_pads, MPI_INT, prev, 0, MPI_COMM_WORLD);
+        MPI_Send(lower, DIM * num_pads, MPI_INT, next, 0, MPI_COMM_WORLD);
       } else {
-        MPI_Recv(pad_row_lower, DIM, MPI_INT, next, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(pad_row_upper, DIM, MPI_INT, prev, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(pad_row_lower, DIM * num_pads, MPI_INT, next, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(pad_row_upper, DIM * num_pads, MPI_INT, prev, 0, MPI_COMM_WORLD, &status);
       }
     } else {
       pad_row_lower = upper;
       pad_row_upper = lower;
     }
     //printf("Exiting send/receive.\n");
-    int sub_grid[(2 * DIM) + (nrows * DIM)];
+    int sub_grid[DIM * (nrows + (2 * num_pads))];
     if (ID == 0) {
-      memset(pad_row_upper, 0, DIM*sizeof(int));
+      memset(pad_row_upper, 0, DIM*sizeof(int)*num_pads);
     }
     if (ID == (num_procs - 1)) {
-      memset(pad_row_lower, 0, DIM*sizeof(int));
+      memset(pad_row_lower, 0, DIM*sizeof(int)*num_pads);
     }
-    memcpy(sub_grid, pad_row_upper, sizeof(int) * DIM); 
-    memcpy(&sub_grid[DIM], &main_grid[DIM * start], sizeof(int) * DIM * nrows);    
-    memcpy(&sub_grid[DIM + (DIM * nrows)], pad_row_lower, sizeof(int) * DIM);
-    int * changed_subgrid = check(sub_grid, nrows, DIM, kernel);
+    memcpy(sub_grid, pad_row_upper, sizeof(int) * DIM * num_pads); 
+    memcpy(&sub_grid[DIM * num_pads], &main_grid[DIM * start], sizeof(int) * DIM * nrows);    
+    memcpy(&sub_grid[DIM * (nrows + num_pads)], pad_row_lower, sizeof(int) * DIM * num_pads);
+    int * changed_subgrid = check(sub_grid, nrows, DIM, kernel, KERNEL_DIM);
 
     //printf("Going into aggregation block\n");
     if(ID != 0) {
@@ -179,16 +199,16 @@ int main ( int argc, char** argv ) {
     //printf("Cleaning\n");
 
     // Output the updated grid state
-    // if ( ID == 0 ) {
-    //   //printf ( "\nConvolution Output: \n");
-    //   for ( j = 0; j < GRID_WIDTH; j++ ) {
-    //     if ( j % DIM == 0 ) {
-    //       //printf( "\n" );
-    //     }
-    //     //printf ( "%d  ", main_grid[j] );
-    //   }
-    //   //printf( "\n" );
-    // }
+     if ( ID == 0 ) {
+       printf ( "\nConvolution Output: \n");
+       for ( j = 0; j < GRID_WIDTH; j++ ) {
+         if ( j % DIM == 0 ) {
+           printf( "\n" );
+         }
+         printf ( "%d  ", main_grid[j] );
+       }
+       printf( "\n" );
+     }
   }
 
   //printf("Freeing\n");
