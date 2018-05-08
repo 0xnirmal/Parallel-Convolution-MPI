@@ -199,16 +199,16 @@ int main ( int argc, char** argv ) {
     //printf("Cleaning\n");
 
     // Output the updated grid state
-     if ( ID == 0 ) {
-       printf ( "\nConvolution Output: \n");
-       for ( j = 0; j < GRID_WIDTH; j++ ) {
-         if ( j % DIM == 0 ) {
-           printf( "\n" );
-         }
-         printf ( "%d  ", main_grid[j] );
-       }
-       printf( "\n" );
-     }
+     /* if ( ID == 0 ) { */
+     /*   printf ( "\nConvolution Output: \n"); */
+     /*   for ( j = 0; j < GRID_WIDTH; j++ ) { */
+     /*     if ( j % DIM == 0 ) { */
+     /*       printf( "\n" ); */
+     /*     } */
+     /*     printf ( "%d  ", main_grid[j] ); */
+     /*   } */
+     /*   printf( "\n" ); */
+     /* } */
   }
 
   //printf("Freeing\n");
