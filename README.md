@@ -17,6 +17,8 @@ layers consist of a set of learning filters, called convolutions.
 ```
 Figure 1: A typical CNN architecture
 ```
+![f1]
+
 These convolution filters on an input image of dimensions 30 by 30 might be of size 3-by-3,
 the kernel size. During the forward pass of the CNN, "we slide (more precisely, convolve) [this 3
 by 3] filter across the width and height of the input volume and compute dot products between
@@ -31,8 +33,10 @@ convolution on the elementA[i][j]would involve a dot product with all the elemen
 surroundingA[i][j]:
 
 ```
-Figure 2: Convolution filter
+Figure 2: Convolution filter- found in writeup.pdf
 ```
+
+
 As you might notice, this can create problems when convolving elements near the edges of the
 input, because the kernel can’t fit inside the bounds of the matrix. To solve this issue, CNNs use
 what is typically known as zero-padding. All matrix edges are padded with zero entries according
@@ -90,6 +94,7 @@ by 3 kernel size and 4 processes.
 ```
 Figure 3: Strip-based decomposition for convolution
 ```
+![f3]
 
 ### 2.2 Experimental Setup
 
@@ -113,13 +118,18 @@ median of 15 runs to ensure consistent and reliable results.
 ```
 Figure 4: Speedup with Varying Kernel Size
 ```
+![f4]
+
 ```
 Figure 5: Speedup with Varying Input Size
 ```
+![f5]
 
 ```
 Figure 6: Speedup with Varying Number of Forward Passes
 ```
+![f6]
+
 ## 4 Discussion
 
 In the results section, we see that all of our lines have the same basic shape. We see close to linear
@@ -189,5 +199,11 @@ and optimally when 4 processes are used on a machine with 8 vCPUs.
 3. Stochastic gradient descent
 4. A Beginner’s Guide To Understanding Convolutional Neural Networks
 5. Cellular Automata in MPI
+
+[f1]: https://github.com/nkrishn9/Parallel-Final-Project/blob/master/img/cnn.png
+[f3]: https://github.com/nkrishn9/Parallel-Final-Project/blob/master/img/strip_diagram.png
+[f4]: https://github.com/nkrishn9/Parallel-Final-Project/blob/master/img/kernel_size.png
+[f5]: https://github.com/nkrishn9/Parallel-Final-Project/blob/master/img/input_size.png
+[f6]: https://github.com/nkrishn9/Parallel-Final-Project/blob/master/img/iterations.png
 
 
